@@ -3,98 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Witz-Memory - Vollversion</title>
+    <title>Witz-Memory - Fullscreen</title>
     <style>
         :root {
             --primary: #2c3e50;
             --accent: #e67e22;
-            --witz-bg: #fff9c4; /* Gelb für Setup */
-            --pointe-bg: #e3f2fd; /* Blau für Pointe */
+            --witz-bg: #fff9c4;
+            --pointe-bg: #e3f2fd;
             --card-back: #34495e;
-            --text-color: #333;
         }
 
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: #ecf0f1; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
+        /* Verhindert Scrollen auf dem gesamten Body */
+        body, html { 
+            height: 100%; 
             margin: 0; 
-            padding: 20px; 
-            color: var(--text-color);
+            overflow: hidden; 
+            font-family: 'Segoe UI', sans-serif;
+            background: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        
-        /* Obere Textanzeige */
+
+        /* Obere Textanzeige fixiert */
+        #ui-header {
+            width: 95%;
+            padding: 10px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
         #ui-top { 
             width: 100%; 
-            max-width: 1000px; 
             display: flex; 
-            gap: 15px; 
-            margin-bottom: 20px; 
+            gap: 10px; 
+            margin-bottom: 5px; 
         }
+
         .text-display { 
             flex: 1; 
-            min-height: 100px; 
-            padding: 15px; 
+            height: 80px; /* Feste Höhe für die Textfelder */
+            padding: 10px; 
             background: white; 
-            border-radius: 12px; 
-            border: 4px solid #ccc; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+            border-radius: 10px; 
+            border: 3px solid #ccc; 
             display: flex; 
             align-items: center; 
             justify-content: center;
             text-align: center; 
             font-weight: 600; 
-            font-size: 1.1rem;
+            font-size: clamp(0.8rem, 1.5vw, 1.1rem);
+            overflow-y: auto;
         }
         #display-1 { border-color: #f1c40f; }
         #display-2 { border-color: #3498db; }
-        
-        #status-bar { margin-bottom: 10px; font-size: 1.4rem; font-weight: bold; color: var(--primary); }
-        
-        #score-board { 
-            display: flex; 
-            gap: 15px; 
-            margin-bottom: 20px; 
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .player-score { 
-            padding: 8px 20px; 
-            border-radius: 25px; 
-            background: white; 
-            border: 2px solid #bdc3c7; 
-            transition: all 0.3s;
-        }
-        .active-player { 
-            border-color: var(--accent); 
-            background: var(--accent); 
-            color: white; 
-            transform: scale(1.1); 
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
 
-        /* Spielfeld im Querformat */
+        #status-bar { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; }
+        
+        #score-board { display: flex; gap: 10px; margin-bottom: 10px; }
+        .player-score { padding: 4px 12px; border-radius: 15px; background: white; border: 2px solid #bdc3c7; font-size: 0.9rem; }
+        .active-player { border-color: var(--accent); background: var(--accent); color: white; }
+
+        /* Spielfeld füllt den Rest des Bildschirms */
         #grid { 
+            flex-grow: 1;
+            width: 95vw;
+            max-height: 65vh; /* Verhindert, dass das Grid zu hoch wird */
             display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
-            gap: 15px; 
-            width: 100%; 
-            max-width: 1200px; 
+            /* Erstellt 6 Spalten (da wir 30 Karten haben, 6x5) */
+            grid-template-columns: repeat(6, 1fr); 
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px; 
+            padding-bottom: 20px;
         }
         
         .card { 
-            width: 180px; 
-            height: 130px; 
+            width: 100%;
+            height: 100%;
             perspective: 1000px; 
-            cursor: pointer; 
+            cursor: pointer;
         }
         .card-inner { 
             position: relative; 
             width: 100%; 
             height: 100%; 
-            text-align: center; 
             transition: transform 0.5s; 
             transform-style: preserve-3d; 
         }
@@ -105,57 +99,48 @@
             width: 100%; 
             height: 100%; 
             backface-visibility: hidden; 
-            border-radius: 12px; 
+            border-radius: 8px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            padding: 12px; 
+            padding: 5px; 
             box-sizing: border-box; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .card-back { 
             background: var(--card-back); 
             color: white; 
-            font-size: 2.5rem; 
-            border: 4px solid white; 
+            font-size: 2rem; 
+            border: 2px solid white; 
         }
         .card-front { 
             transform: rotateY(180deg); 
-            font-size: 0.9rem; 
-            line-height: 1.3; 
-            overflow-y: auto; 
-            border: 2px solid #ddd;
+            font-size: clamp(0.6rem, 1vw, 0.85rem); /* Schrift schrumpft mit */
+            line-height: 1.2; 
+            border: 1px solid #ddd;
+            text-align: center;
         }
         
         .type-setup { background-color: var(--witz-bg); }
         .type-pointe { background-color: var(--pointe-bg); }
-
-        .card.matched { pointer-events: none; opacity: 0.3; transition: opacity 0.8s; }
+        .card.matched { pointer-events: none; opacity: 0.2; }
 
         /* Overlays */
         #setup, #victory { 
-            position: fixed; 
-            inset: 0; 
+            position: fixed; inset: 0; 
             background: rgba(44, 62, 80, 0.98); 
-            color: white; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            z-index: 100; 
-            text-align: center; 
+            color: white; z-index: 100; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
         }
         .hidden { display: none !important; }
-        input, select, button { padding: 12px; margin: 10px; border-radius: 8px; border: none; font-size: 1rem; }
-        button { background: var(--accent); color: white; cursor: pointer; font-weight: bold; border-bottom: 4px solid #d35400; }
-        button:active { border-bottom: none; transform: translateY(4px); }
+        input, select, button { padding: 10px; margin: 5px; border-radius: 8px; border: none; }
+        button { background: var(--accent); color: white; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="setup">
         <h1>😂 Witz-Memory</h1>
-        <p>Wer spielt mit?</p>
         <select id="player-count">
             <option value="2">2 Spieler</option>
             <option value="3">3 Spieler</option>
@@ -165,23 +150,22 @@
         <button onclick="startGame()">Spiel starten</button>
     </div>
 
-    <div id="status-bar">Witz-Memory</div>
-    
-    <div id="ui-top">
-        <div id="display-1" class="text-display">Karte 1</div>
-        <div id="display-2" class="text-display">Karte 2</div>
+    <div id="ui-header">
+        <div id="status-bar">Witz-Memory</div>
+        <div id="ui-top">
+            <div id="display-1" class="text-display">Karte 1</div>
+            <div id="display-2" class="text-display">Karte 2</div>
+        </div>
+        <div id="score-board"></div>
     </div>
 
-    <div id="score-board"></div>
     <div id="grid"></div>
 
     <div id="victory" class="hidden">
-        <h1 style="font-size: 3rem;">Alle Paare gefunden! 🏆</h1>
+        <h1>🏆 Spiel beendet!</h1>
         <div id="winner-text" style="font-size: 1.5rem; margin-bottom: 20px;"></div>
-        <div>
-            <button onclick="restartGame(false)">Nochmal (selbe Spieler)</button>
-            <button onclick="restartGame(true)">Hauptmenü</button>
-        </div>
+        <button onclick="restartGame(false)">Nochmal</button>
+        <button onclick="restartGame(true)">Hauptmenü</button>
     </div>
 
     <script>
@@ -197,7 +181,7 @@
             { w: "„Was ist grün und klopft an die Tür?“", p: "Ein Klopfsalat!" },
             { w: "Was ist ein Keks unter einem Baum?", p: "Ein schattiges Plätzchen!" },
             { w: "Der kleine Fisch fragt seine Mutter: „Warum leben wir eigentlich im Wasser?“", p: "Die Mutter antwortet: „Damit wir nicht baden müssen!“" },
-            { w: "Warum können Geister so schlecht lügen?", p: "Weil man sie sofort durchschaut!" },
+            { w: "Was macht eine Bombe im Kühlschrank?", p: "Sie sorgt für eine Bombenstimmung!" },
             { w: "Lehrer: „Wenn ich drei Äpfel auf den Tisch lege und du legst vier dazu, was haben wir dann?“", p: "Schüler: „Eine ganze Menge Obst!“" },
             { w: "Patient: „Herr Doktor, ich habe das Gefühl, ich bin ein unsichtbarer Mensch!“", p: "Der Doktor ruft: „Der Nächste bitte!“" },
             { w: "Treffen sich zwei Schafe. Sagt das eine: „Mäh!“", p: "Sagt das andere: „Mäh doch selber!“" }
@@ -214,7 +198,7 @@
         playerCountSelect.addEventListener('change', () => {
             nameInputsDiv.innerHTML = '';
             for(let i=0; i<playerCountSelect.value; i++) {
-                nameInputsDiv.innerHTML += `<input type="text" id="p${i}" placeholder="Name Spieler ${i+1}" value="Spieler ${i+1}">`;
+                nameInputsDiv.innerHTML += `<input type="text" id="p${i}" placeholder="Spieler ${i+1}" value="Spieler ${i+1}">`;
             }
         });
         playerCountSelect.dispatchEvent(new Event('change'));
@@ -236,7 +220,7 @@
             
             let gameItems = [];
             witzDaten.forEach((item, index) => {
-                gameItems.push({ text: item.w, pairId: index, type: 'setup' });
+                gameItems.push({ text: item.text || item.w, pairId: index, type: 'setup' });
                 gameItems.push({ text: item.p, pairId: index, type: 'pointe' });
             });
 
@@ -247,11 +231,7 @@
                 card.className = 'card';
                 card.dataset.pairId = item.pairId;
                 card.dataset.text = item.text;
-                card.innerHTML = `
-                    <div class="card-inner">
-                        <div class="card-back">?</div>
-                        <div class="card-front type-${item.type}">${item.text}</div>
-                    </div>`;
+                card.innerHTML = `<div class="card-inner"><div class="card-back">?</div><div class="card-front type-${item.type}">${item.text}</div></div>`;
                 card.addEventListener('click', () => handleCardClick(card));
                 grid.appendChild(card);
             });
@@ -260,37 +240,25 @@
 
         function handleCardClick(card) {
             if (lockBoard || card.classList.contains('flipped') || card.classList.contains('matched')) return;
-
             card.classList.add('flipped');
             flippedCards.push(card);
-
             document.getElementById(`display-${flippedCards.length}`).innerText = card.dataset.text;
-
-            if (flippedCards.length === 2) {
-                lockBoard = true;
-                checkMatch();
-            }
+            if (flippedCards.length === 2) { lockBoard = true; checkMatch(); }
         }
 
         function checkMatch() {
             const [c1, c2] = flippedCards;
-            const match = c1.dataset.pairId === c2.dataset.pairId;
-
-            if (match) {
+            if (c1.dataset.pairId === c2.dataset.pairId) {
                 setTimeout(() => {
                     players[currentPlayer].score++;
-                    c1.classList.add('matched');
-                    c2.classList.add('matched');
+                    c1.classList.add('matched'); c2.classList.add('matched');
                     resetTurn();
                 }, 600);
             } else {
-                document.getElementById('status-bar').innerText = "Schade! Klicke irgendwo zum Zudrehen.";
-                
+                document.getElementById('status-bar').innerText = "Klicke zum Zudrehen!";
                 setTimeout(() => {
-                    const closeHandler = (e) => {
-                        e.stopPropagation();
-                        c1.classList.remove('flipped');
-                        c2.classList.remove('flipped');
+                    const closeHandler = () => {
+                        c1.classList.remove('flipped'); c2.classList.remove('flipped');
                         currentPlayer = (currentPlayer + 1) % players.length;
                         resetTurn();
                         window.removeEventListener('click', closeHandler, true);
@@ -301,8 +269,7 @@
         }
 
         function resetTurn() {
-            flippedCards = [];
-            lockBoard = false;
+            flippedCards = []; lockBoard = false;
             document.getElementById('display-1').innerText = "Karte 1";
             document.getElementById('display-2').innerText = "Karte 2";
             updateUI();
@@ -310,30 +277,23 @@
         }
 
         function updateUI() {
-            document.getElementById('status-bar').innerText = `${players[currentPlayer].name} ist am Zug!`;
-            const board = document.getElementById('score-board');
-            board.innerHTML = players.map((p, i) => 
-                `<div class="player-score ${i === currentPlayer ? 'active-player' : ''}">${p.name}: ${p.score}</div>`
-            ).join('');
+            document.getElementById('status-bar').innerText = `${players[currentPlayer].name} ist dran!`;
+            document.getElementById('score-board').innerHTML = players.map((p, i) => 
+                `<div class="player-score ${i === currentPlayer ? 'active-player' : ''}">${p.name}: ${p.score}</div>`).join('');
         }
 
         function checkVictory() {
-            const matchedCount = document.querySelectorAll('.matched').length;
-            if (matchedCount === witzDaten.length * 2) {
+            if (document.querySelectorAll('.matched').length === witzDaten.length * 2) {
                 const winner = [...players].sort((a,b) => b.score - a.score)[0];
                 document.getElementById('victory').classList.remove('hidden');
-                document.getElementById('winner-text').innerText = `${winner.name} gewinnt mit ${winner.score} Punkten!`;
+                document.getElementById('winner-text').innerText = `${winner.name} gewinnt!`;
             }
         }
 
         function restartGame(toStart) {
             document.getElementById('victory').classList.add('hidden');
-            if (toStart) {
-                document.getElementById('setup').classList.remove('hidden');
-            } else {
-                players.forEach(p => p.score = 0);
-                initBoard();
-            }
+            if (toStart) document.getElementById('setup').classList.remove('hidden');
+            else { players.forEach(p => p.score = 0); initBoard(); }
         }
     </script>
 </body>
