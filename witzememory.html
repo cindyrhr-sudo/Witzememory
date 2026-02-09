@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Witz-Memory - Vollversion</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22;
+            --witz-bg: #fff9c4; /* Gelb für Setup */
+            --pointe-bg: #e3f2fd; /* Blau für Pointe */
+            --card-back: #34495e;
+            --text-color: #333;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #ecf0f1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 0; 
+            padding: 20px; 
+            color: var(--text-color);
+        }
+        
+        /* Obere Textanzeige */
+        #ui-top { 
+            width: 100%; 
+            max-width: 1000px; 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 20px; 
+        }
+        .text-display { 
+            flex: 1; 
+            min-height: 100px; 
+            padding: 15px; 
+            background: white; 
+            border-radius: 12px; 
+            border: 4px solid #ccc; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            text-align: center; 
+            font-weight: 600; 
+            font-size: 1.1rem;
+        }
+        #display-1 { border-color: #f1c40f; }
+        #display-2 { border-color: #3498db; }
+        
+        #status-bar { margin-bottom: 10px; font-size: 1.4rem; font-weight: bold; color: var(--primary); }
+        
+        #score-board { 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 20px; 
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .player-score { 
+            padding: 8px 20px; 
+            border-radius: 25px; 
+            background: white; 
+            border: 2px solid #bdc3c7; 
+            transition: all 0.3s;
+        }
+        .active-player { 
+            border-color: var(--accent); 
+            background: var(--accent); 
+            color: white; 
+            transform: scale(1.1); 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Spielfeld im Querformat */
+        #grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+            gap: 15px; 
+            width: 100%; 
+            max-width: 1200px; 
+        }
+        
+        .card { 
+            width: 180px; 
+            height: 130px; 
+            perspective: 1000px; 
+            cursor: pointer; 
+        }
+        .card-inner { 
+            position: relative; 
+            width: 100%; 
+            height: 100%; 
+            text-align: center; 
+            transition: transform 0.5s; 
+            transform-style: preserve-3d; 
+        }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        
+        .card-front, .card-back { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            backface-visibility: hidden; 
+            border-radius: 12px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 12px; 
+            box-sizing: border-box; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card-back { 
+            background: var(--card-back); 
+            color: white; 
+            font-size: 2.5rem; 
+            border: 4px solid white; 
+        }
+        .card-front { 
+            transform: rotateY(180deg); 
+            font-size: 0.9rem; 
+            line-height: 1.3; 
+            overflow-y: auto; 
+            border: 2px solid #ddd;
+        }
+        
+        .type-setup { background-color: var(--witz-bg); }
+        .type-pointe { background-color: var(--pointe-bg); }
+
+        .card.matched { pointer-events: none; opacity: 0.3; transition: opacity 0.8s; }
+
+        /* Overlays */
+        #setup, #victory { 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(44, 62, 80, 0.98); 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 100; 
+            text-align: center; 
+        }
+        .hidden { display: none !important; }
+        input, select, button { padding: 12px; margin: 10px; border-radius: 8px; border: none; font-size: 1rem; }
+        button { background: var(--accent); color: white; cursor: pointer; font-weight: bold; border-bottom: 4px solid #d35400; }
+        button:active { border-bottom: none; transform: translateY(4px); }
+    </style>
+</head>
+<body>
+
+    <div id="setup">
+        <h1>😂 Witz-Memory</h1>
+        <p>Wer spielt mit?</p>
+        <select id="player-count">
+            <option value="2">2 Spieler</option>
+            <option value="3">3 Spieler</option>
+            <option value="4">4 Spieler</option>
+        </select>
+        <div id="name-inputs"></div>
+        <button onclick="startGame()">Spiel starten</button>
+    </div>
+
+    <div id="status-bar">Witz-Memory</div>
+    
+    <div id="ui-top">
+        <div id="display-1" class="text-display">Karte 1</div>
+        <div id="display-2" class="text-display">Karte 2</div>
+    </div>
+
+    <div id="score-board"></div>
+    <div id="grid"></div>
+
+    <div id="victory" class="hidden">
+        <h1 style="font-size: 3rem;">Alle Paare gefunden! 🏆</h1>
+        <div id="winner-text" style="font-size: 1.5rem; margin-bottom: 20px;"></div>
+        <div>
+            <button onclick="restartGame(false)">Nochmal (selbe Spieler)</button>
+            <button onclick="restartGame(true)">Hauptmenü</button>
+        </div>
+    </div>
+
+    <script>
+        const witzDaten = [
+            { w: "„Mami, Mami! Der Keks schmeckt aber gar nicht gut!“", p: "„Hör auf zu meckern und leg den Pappuntersetzer wieder zurück!“" },
+            { w: "Was sagt ein großer Stift zum kleinen Stift?", p: "„Wachs-mal-stift!“" },
+            { w: "„Warum hast du denn deinen Teddy ins Eisfach gelegt?“", p: "„Weil ich mir schon immer einen Eisbären gewünscht habe!“" },
+            { w: "Warum fliegen Vögel im Winter in den Süden?", p: "Weil es zu Fuß viel zu weit wäre!" },
+            { w: "Was ist die Steigerung von Buchstabensuppe?", p: "Wörtersee!" },
+            { w: "Lehrer: „Nenne mir ein beliebiges Streichinstrument!“", p: "Schüler: „Der Pinsel!“" },
+            { w: "Treffen sich zwei Fische im Meer. Sagt der eine: „Hi!“", p: "Sagt der andere: „Wo? Wo?!“" },
+            { w: "Zwei Zahnstocher laufen den Berg hoch. Ein Igel überholt sie.", p: "Sagt der eine: „Mensch, ich wusste gar nicht, dass hier ein Bus fährt!“" },
+            { w: "„Was ist grün und klopft an die Tür?“", p: "Ein Klopfsalat!" },
+            { w: "Was ist ein Keks unter einem Baum?", p: "Ein schattiges Plätzchen!" },
+            { w: "Der kleine Fisch fragt seine Mutter: „Warum leben wir eigentlich im Wasser?“", p: "Die Mutter antwortet: „Damit wir nicht baden müssen!“" },
+            { w: "Warum können Geister so schlecht lügen?", p: "Weil man sie sofort durchschaut!" },
+            { w: "Lehrer: „Wenn ich drei Äpfel auf den Tisch lege und du legst vier dazu, was haben wir dann?“", p: "Schüler: „Eine ganze Menge Obst!“" },
+            { w: "Patient: „Herr Doktor, ich habe das Gefühl, ich bin ein unsichtbarer Mensch!“", p: "Der Doktor ruft: „Der Nächste bitte!“" },
+            { w: "Treffen sich zwei Schafe. Sagt das eine: „Mäh!“", p: "Sagt das andere: „Mäh doch selber!“" }
+        ];
+
+        let players = [];
+        let currentPlayer = 0;
+        let flippedCards = [];
+        let lockBoard = false;
+
+        const playerCountSelect = document.getElementById('player-count');
+        const nameInputsDiv = document.getElementById('name-inputs');
+
+        playerCountSelect.addEventListener('change', () => {
+            nameInputsDiv.innerHTML = '';
+            for(let i=0; i<playerCountSelect.value; i++) {
+                nameInputsDiv.innerHTML += `<input type="text" id="p${i}" placeholder="Name Spieler ${i+1}" value="Spieler ${i+1}">`;
+            }
+        });
+        playerCountSelect.dispatchEvent(new Event('change'));
+
+        function startGame() {
+            players = [];
+            for(let i=0; i<playerCountSelect.value; i++) {
+                players.push({ name: document.getElementById(`p${i}`).value, score: 0 });
+            }
+            document.getElementById('setup').classList.add('hidden');
+            initBoard();
+        }
+
+        function initBoard() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            flippedCards = [];
+            currentPlayer = 0;
+            
+            let gameItems = [];
+            witzDaten.forEach((item, index) => {
+                gameItems.push({ text: item.w, pairId: index, type: 'setup' });
+                gameItems.push({ text: item.p, pairId: index, type: 'pointe' });
+            });
+
+            gameItems.sort(() => Math.random() - 0.5);
+
+            gameItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.pairId = item.pairId;
+                card.dataset.text = item.text;
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-back">?</div>
+                        <div class="card-front type-${item.type}">${item.text}</div>
+                    </div>`;
+                card.addEventListener('click', () => handleCardClick(card));
+                grid.appendChild(card);
+            });
+            updateUI();
+        }
+
+        function handleCardClick(card) {
+            if (lockBoard || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+            card.classList.add('flipped');
+            flippedCards.push(card);
+
+            document.getElementById(`display-${flippedCards.length}`).innerText = card.dataset.text;
+
+            if (flippedCards.length === 2) {
+                lockBoard = true;
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            const [c1, c2] = flippedCards;
+            const match = c1.dataset.pairId === c2.dataset.pairId;
+
+            if (match) {
+                setTimeout(() => {
+                    players[currentPlayer].score++;
+                    c1.classList.add('matched');
+                    c2.classList.add('matched');
+                    resetTurn();
+                }, 600);
+            } else {
+                document.getElementById('status-bar').innerText = "Schade! Klicke irgendwo zum Zudrehen.";
+                
+                setTimeout(() => {
+                    const closeHandler = (e) => {
+                        e.stopPropagation();
+                        c1.classList.remove('flipped');
+                        c2.classList.remove('flipped');
+                        currentPlayer = (currentPlayer + 1) % players.length;
+                        resetTurn();
+                        window.removeEventListener('click', closeHandler, true);
+                    };
+                    window.addEventListener('click', closeHandler, true);
+                }, 200);
+            }
+        }
+
+        function resetTurn() {
+            flippedCards = [];
+            lockBoard = false;
+            document.getElementById('display-1').innerText = "Karte 1";
+            document.getElementById('display-2').innerText = "Karte 2";
+            updateUI();
+            checkVictory();
+        }
+
+        function updateUI() {
+            document.getElementById('status-bar').innerText = `${players[currentPlayer].name} ist am Zug!`;
+            const board = document.getElementById('score-board');
+            board.innerHTML = players.map((p, i) => 
+                `<div class="player-score ${i === currentPlayer ? 'active-player' : ''}">${p.name}: ${p.score}</div>`
+            ).join('');
+        }
+
+        function checkVictory() {
+            const matchedCount = document.querySelectorAll('.matched').length;
+            if (matchedCount === witzDaten.length * 2) {
+                const winner = [...players].sort((a,b) => b.score - a.score)[0];
+                document.getElementById('victory').classList.remove('hidden');
+                document.getElementById('winner-text').innerText = `${winner.name} gewinnt mit ${winner.score} Punkten!`;
+            }
+        }
+
+        function restartGame(toStart) {
+            document.getElementById('victory').classList.add('hidden');
+            if (toStart) {
+                document.getElementById('setup').classList.remove('hidden');
+            } else {
+                players.forEach(p => p.score = 0);
+                initBoard();
+            }
+        }
+    </script>
+</body>
+</html>
